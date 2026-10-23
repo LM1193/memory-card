@@ -116,6 +116,33 @@ Main (Scene)
 
 ## 7. 构建
 
+### 7.0 推荐用法：安全构建入口
+
+> 直接用 `File → Build Settings → Build` 时，若编辑器**正在编译脚本**，构建会立即失败并报
+> `Error building Player because scripts are compiling`。这不是工程错误，是时序问题。
+
+菜单 `Tools → Memory Card → Build WebGL (Safe)`：
+
+| 行为 | 说明 |
+|---|---|
+| 等待空闲 | 用 `delayCall` 非阻塞轮询，直到 `isCompiling / isUpdating / isPlaying` 全为 false |
+| 自动切平台 | 当前平台不是 WebGL 时先切换（会触发资源重导入） |
+| 自动退播放 | 处于 Play 模式时先停止（Play 模式不允许 Build） |
+| 输出报告 | 结果 / 耗时 / 体积明细写入 `Logs/build-webgl.txt`，并弹出发送目录 |
+
+等价的命令行入口（适合 CI）：
+
+```bash
+Unity.exe -quit -batchmode -projectPath "E:/unitwork/Memory Card" \
+  -executeMethod MemoryCard.EditorTools.BuildTools.BuildWebGLBatch
+```
+
+### 7.0.1 工程自检
+
+菜单 `Tools → Memory Card → Validate Project`，一次性检查 15 项配置（缺失脚本、管理器序列化空引用、
+牌面素材完整度、牌数奇偶、Card 预制体组件、构建场景列表、WebGL 模块、精灵 PPU、相机取景覆盖），
+报告写入 `Logs/validate-report.txt`。**构建前建议先跑一次**。
+
 ### 7.1 WebGL
 
 1. `File → Build Settings → WebGL → Switch Platform`
