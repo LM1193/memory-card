@@ -1,0 +1,15 @@
+# 让 Unity 的 YAML 资产使用 UnityYAMLMerge 合并，减少场景/预制体冲突
+# 前置条件：本机已安装 Unity，且已按 Unity 手册配置 git config merge.unityyamlmerge
+*.unity merge=unityyamlmerge eol=lf
+*.prefab merge=unityyamlmerge eol=lf
+*.asset merge=unityyamlmerge eol=lf
+*.meta merge=unityyamlmerge eol=lf
+*.controller merge=unityyamlmerge eol=lf
+*.anim merge=unityyamlmerge eol=lf
+
+# 统一换行，避免 Windows/macOS 互刷 diff
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.psd binary
+*.fbx binary

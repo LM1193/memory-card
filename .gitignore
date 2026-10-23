@@ -1,0 +1,65 @@
+# Unity 工程标准忽略文件（Windows / macOS 通用）
+# 依据：Unity 官方手册「Version Control integration」
+
+# Unity 自动生成的目录
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# IDE 自动生成的项目文件（每次打开都会重生成，不应提交）
+.vs/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# 构建产物
+*.apk
+*.aab
+*.unitypackage
+*.app
+ExportedObj/
+
+# 崩溃报告与临时文件
+sysinfo.txt
+crashlytics-build.properties
+*.tmp
+*.bak
+*~
+
+# OS 生成
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 注意：Assets/ 下的 *.meta 文件必须提交，绝不能忽略！
+
+# ------------------------------------------------------------------
+# 例外：允许提交 WebGL 构建产物，供 GitHub Pages 在线展示使用
+# （WebGL 产物里自带一个 Build/ 目录，会被上面的 [Bb]uild/ 规则误伤，
+#   因此这里必须显式开白名单；不使用 Pages 时删掉这几行即可）
+# ------------------------------------------------------------------
+!webgl/
+!webgl/**
+!webgl/Build/
+!webgl/Build/**
+
+# --- 本项目追加 ---
+# Unity MCP 插件（开发工具，非游戏代码，不纳入源码交付）
+Packages/com.coplaydev.unity-mcp/
