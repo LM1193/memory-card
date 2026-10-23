@@ -17,7 +17,32 @@ namespace MemoryCard
     /// </summary>
     public class GameManager : MonoBehaviour
     {
-        public static GameManager Instance { get; private set; }
+        private static GameManager _instance;
+
+        /// <summary>
+        /// 全局唯一入口。
+        /// 【为什么不是简单的 { get; private set; }】
+        /// 播放模式中途若发生脚本重编译，Unity 会重载域并清空所有静态字段，
+        /// 但场景中的对象仍然存活 —— 此时静态引用变 null，UI 里
+        /// "if (GameManager.Instance != null)" 判断会失败，表现为「点 Start 没反应」。
+        /// 改成惰性自愈：为空时按需在场景里重新找回，单次域重载不再让游戏卡死。
+        /// </summary>
+        public static GameManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+#if UNITY_2023_1_OR_NEWER
+                    _instance = FindFirstObjectByType<GameManager>();
+#else
+                    _instance = FindObjectOfType<GameManager>();
+#endif
+                }
+                return _instance;
+            }
+            private set { _instance = value; }
+        }
 
         [Header("引用")]
         [SerializeField] private BoardManager board;
@@ -51,6 +76,9 @@ namespace MemoryCard
                 return;
             }
             Instance = this;
+
+            // 音效在这个物体上就地初始化（自动挂 AudioSource，无需改场景）
+            Sfx.Init(gameObject);
 
             // 兜底自动查找（正常情况请在 Inspector 手动拖入引用）
             // 注意：FindObjectOfType 在 Unity 2023.1+ 已弃用，故按版本条件编译
@@ -123,6 +151,7 @@ namespace MemoryCard
             if (card == null || !card.IsClickable) return;
 
             card.Reveal();
+            Sfx.PlayFlip();
 
             if (_firstRevealed == null)
             {
@@ -146,6 +175,7 @@ namespace MemoryCard
             {
                 _firstRevealed.SetMatched();
                 _secondRevealed.SetMatched();
+                Sfx.PlayMatch();
 
                 _score++;
                 _matchedPairs++;
@@ -159,6 +189,8 @@ namespace MemoryCard
             }
             else
             {
+                Sfx.PlayMismatch();
+
                 // 课件第 14 页：让该函数暂停 1.5 秒后继续
                 yield return new WaitForSeconds(flipBackDelay);
 
@@ -176,6 +208,7 @@ namespace MemoryCard
         {
             _isWin = true;
             _isPlaying = false;
+            Sfx.PlayWin();
 
             float best = PlayerPrefs.GetFloat(BestTimeKey, 0f);
             bool isNewRecord = best <= 0f || _timer < best;
