@@ -52,6 +52,12 @@ namespace MemoryCard
         [Tooltip("配对失败后停留多久再翻回（秒），课件第 14 页示例为 1.5")]
         [SerializeField] private float flipBackDelay = 1.5f;
 
+        [Header("计分规则")]
+        [Tooltip("配对成功一组的得分")]
+        [SerializeField] private int scorePerMatch = 10;
+        [Tooltip("配对失败一次扣的分，分数不会被扣成负数")]
+        [SerializeField] private int penaltyPerMismatch = 2;
+
         private const string BestTimeKey = "MC_BestTime";
 
         private Card _firstRevealed;      // 课件：_firstRevealed
@@ -59,6 +65,7 @@ namespace MemoryCard
 
         private int _score;
         private int _matchedPairs;
+        private int _moves;
         private float _timer;
 
         private bool _isPlaying;          // 是否正在计时/可操作
@@ -67,6 +74,7 @@ namespace MemoryCard
 
         public float ElapsedTime => _timer;
         public int Score => _score;
+        public int Moves => _moves;
 
         private void Awake()
         {
@@ -125,6 +133,7 @@ namespace MemoryCard
 
             _score = 0;
             _matchedPairs = 0;
+            _moves = 0;
             _timer = 0f;
             _isWin = false;
             _isPlaying = true;
@@ -137,6 +146,7 @@ namespace MemoryCard
             {
                 ui.HideAll();
                 ui.UpdateScore(_score);
+                ui.UpdateMoves(_moves);
                 ui.UpdateTime(_timer);
             }
         }
@@ -160,6 +170,11 @@ namespace MemoryCard
             }
 
             _secondRevealed = card;
+
+            // 步数：每翻开第二张牌记 1 步（一次配对尝试 = 1 步）
+            _moves++;
+            if (ui != null) ui.UpdateMoves(_moves);
+
             StartCoroutine(CheckMatch());               // 课件第 14 页：StartCoroutine
         }
 
@@ -177,7 +192,7 @@ namespace MemoryCard
                 _secondRevealed.SetMatched();
                 Sfx.PlayMatch();
 
-                _score++;
+                _score += scorePerMatch;
                 _matchedPairs++;
                 if (ui != null) ui.UpdateScore(_score);
 
@@ -190,6 +205,10 @@ namespace MemoryCard
             else
             {
                 Sfx.PlayMismatch();
+
+                // 失败扣分，但不允许扣成负数（避免新手连错后分数为负）
+                _score = Mathf.Max(0, _score - penaltyPerMismatch);
+                if (ui != null) ui.UpdateScore(_score);
 
                 // 课件第 14 页：让该函数暂停 1.5 秒后继续
                 yield return new WaitForSeconds(flipBackDelay);
@@ -219,7 +238,7 @@ namespace MemoryCard
                 PlayerPrefs.Save();
             }
 
-            if (ui != null) ui.ShowWin(_timer, _score, best, isNewRecord);
+            if (ui != null) ui.ShowWin(_timer, _score, _moves, best, isNewRecord);
         }
     }
 }

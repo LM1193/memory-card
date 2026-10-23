@@ -15,8 +15,9 @@ namespace MemoryCard
     {
         [Header("文本")]
         [SerializeField] private Text timeText;      // 只显示时间数字，如 "12.3"
-        [SerializeField] private Text scoreText;     // 如 "SCORE 3"
-        [SerializeField] private Text resultText;    // 胜利面板：用时与得分
+        [SerializeField] private Text scoreText;     // 如 "SCORE 30"
+        [SerializeField] private Text movesText;     // 如 "MOVES 5"
+        [SerializeField] private Text resultText;    // 胜利面板：用时、得分与步数
         [SerializeField] private Text bestText;      // 胜利面板：历史最佳
 
         [Header("面板")]
@@ -49,6 +50,12 @@ namespace MemoryCard
             if (scoreText != null) scoreText.text = $"SCORE {score}";
         }
 
+        /// <summary>刷新步数显示（每翻开第二张牌记 1 步）。</summary>
+        public void UpdateMoves(int moves)
+        {
+            if (movesText != null) movesText.text = $"MOVES {moves}";
+        }
+
         /// <summary>显示开始面板（进入游戏时）。</summary>
         public void ShowStart()
         {
@@ -57,13 +64,13 @@ namespace MemoryCard
         }
 
         /// <summary>显示胜利面板。</summary>
-        public void ShowWin(float time, int score, float best, bool isNewRecord)
+        public void ShowWin(float time, int score, int moves, float best, bool isNewRecord)
         {
             if (winPanel != null) winPanel.SetActive(true);
             if (startPanel != null) startPanel.SetActive(false);
 
             if (resultText != null)
-                resultText.text = $"TIME {time:F1}s    SCORE {score}";
+                resultText.text = $"TIME {time:F1}s    SCORE {score}    MOVES {moves}";
 
             if (bestText != null)
                 bestText.text = isNewRecord ? $"BEST {best:F1}s  NEW!" : $"BEST {best:F1}s";

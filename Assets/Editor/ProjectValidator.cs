@@ -132,7 +132,7 @@ namespace MemoryCard.EditorTools
             {
                 var so = new SerializedObject(ui);
                 CheckRefs(r, so, "UIManager",
-                    "timeText", "scoreText", "resultText", "bestText",
+                    "timeText", "scoreText", "movesText", "resultText", "bestText",
                     "startPanel", "winPanel", "startButton", "restartButton");
             }
 

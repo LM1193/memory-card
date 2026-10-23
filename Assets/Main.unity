@@ -122,6 +122,85 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &156901933
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 156901936}
+  - component: {fileID: 156901935}
+  - component: {fileID: 156901934}
+  m_Layer: 5
+  m_Name: MovesText
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &156901934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 156901933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FontData:
+    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+    m_FontSize: 24
+    m_FontStyle: 0
+    m_BestFit: 0
+    m_MinSize: 10
+    m_MaxSize: 40
+    m_Alignment: 3
+    m_AlignByGeometry: 0
+    m_RichText: 1
+    m_HorizontalOverflow: 1
+    m_VerticalOverflow: 1
+    m_LineSpacing: 1
+  m_Text: MOVES 0
+--- !u!222 &156901935
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 156901933}
+  m_CullTransparentMesh: 1
+--- !u!224 &156901936
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 156901933}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1748801691}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 460, y: -14}
+  m_SizeDelta: {x: 220, y: 30}
+  m_Pivot: {x: 0, y: 1}
 --- !u!1 &314004705
 GameObject:
   m_ObjectHideFlags: 0
@@ -341,7 +420,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 4.5
+  orthographic size: 5.2
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -366,7 +445,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.5, z: -10}
+  m_LocalPosition: {x: 0, y: 2.75, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1031,6 +1110,8 @@ MonoBehaviour:
   board: {fileID: 1409880107}
   ui: {fileID: 1748801692}
   flipBackDelay: 1.5
+  scorePerMatch: 10
+  penaltyPerMismatch: 2
 --- !u!4 &1193928625
 Transform:
   m_ObjectHideFlags: 0
@@ -1075,10 +1156,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ff6e1337d0653547b6bfe96a6f41981, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rows: 3
+  rows: 4
   cols: 4
   originalX: -3
-  originalY: 0
+  originalY: -1
   offsetX: 2
   offsetY: 2.5
   images:
@@ -1088,6 +1169,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: fc0432f9ff1703b46bfb985812e62946, type: 3}
   - {fileID: 21300000, guid: e6842260772a2394b94b7ecdbf96fb41, type: 3}
   - {fileID: 21300000, guid: 317ddcd8ccaf5404a812ed19fa727569, type: 3}
+  - {fileID: 21300000, guid: 6805a63a26ffa4c4ea1bf0a9f668b100, type: 3}
+  - {fileID: 21300000, guid: ea118ff7b7105114ab2aed9c0b592688, type: 3}
   backSprite: {fileID: 21300000, guid: cc3b2293ec724b941b4bdd144ec6d28a, type: 3}
   cardPrefab: {fileID: 6615078672319162154, guid: ba60c3d239137bb4dbd21d005b4fb1e2, type: 3}
   cardSortingOrder: 0
@@ -1441,6 +1524,7 @@ RectTransform:
   - {fileID: 1172433151}
   - {fileID: 1020948860}
   - {fileID: 437647316}
+  - {fileID: 156901936}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1462,6 +1546,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timeText: {fileID: 314004707}
   scoreText: {fileID: 1172433152}
+  movesText: {fileID: 156901934}
   resultText: {fileID: 1454623815}
   bestText: {fileID: 1463357278}
   startPanel: {fileID: 1020948859}
