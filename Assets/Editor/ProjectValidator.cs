@@ -51,6 +51,7 @@ namespace MemoryCard.EditorTools
             CheckMissingScripts(r, scene);
             CheckManagers(r);
             CheckPuzzleData(r);
+            CheckAudio(r);
 
             var board = Object.FindObjectOfType<BoardManager>();
             CheckCardPrefab(r, board);
@@ -124,7 +125,7 @@ namespace MemoryCard.EditorTools
             if (gm != null)
             {
                 var so = new SerializedObject(gm);
-                CheckRefs(r, so, "GameManager", "board", "ui");
+                CheckRefs(r, so, "GameManager", "board", "ui", "music");
             }
 
             var ui = Object.FindObjectOfType<UIManager>();
@@ -169,6 +170,68 @@ namespace MemoryCard.EditorTools
 
                 if (images != null && images.arraySize > 0 && total / 2 > images.arraySize)
                     r.Warning($"需要 {total / 2} 种牌面，但 images 只有 {images.arraySize} 张，将出现数组越界。");
+            }
+        }
+
+        /// <summary>
+        /// 音频系统检查：BGM 必须独立 AudioSource + 开启 Loop，且导入设置不能是压缩格式。
+        /// 这一项直接对应实验要求第 6 条「循环播放背景音乐」。
+        /// </summary>
+        private static void CheckAudio(Result r)
+        {
+            var mp = Object.FindObjectOfType<MusicPlayer>();
+            if (mp == null)
+            {
+                r.Error("场景中找不到 MusicPlayer（背景音乐）。请把 MusicPlayer.cs 挂到 Music 物体上。");
+                return;
+            }
+
+            var so = new SerializedObject(mp);
+            CheckRefs(r, so, "MusicPlayer", "source", "bgm");
+
+            var src = mp.GetComponent<AudioSource>();
+            if (src == null)
+            {
+                r.Error("MusicPlayer 所在物体上没有 AudioSource 组件。");
+            }
+            else
+            {
+                if (!src.loop) r.Error("背景音乐 AudioSource 没有勾选 Loop —— 播放一遍就会停，不满足「循环播放」。");
+                else r.Ok("背景音乐 AudioSource 已勾选 Loop（循环播放）。");
+
+                if (src.clip == null) r.Error("背景音乐 AudioSource 未指定 AudioClip。");
+
+                // BGM 与音效必须分属两个 AudioSource，否则 PlayOneShot 会打断循环
+                var gm = Object.FindObjectOfType<GameManager>();
+                if (gm != null)
+                {
+                    var sfxSrc = gm.GetComponent<AudioSource>();
+                    if (sfxSrc == null) r.Warning("GameManager 上没有 AudioSource，Sfx 只能在运行时自动添加。");
+                    else if (sfxSrc == src) r.Error("BGM 与音效共用同一个 AudioSource，音效会打断背景音乐。");
+                    else r.Ok("BGM 与音效使用两个独立 AudioSource，互不打断。");
+                }
+            }
+
+            // 导入设置：WAV 应保持 PCM / Decompress On Load，压缩格式在循环点可能产生间隙
+            var clip = so.FindProperty("bgm").objectReferenceValue as AudioClip;
+            if (clip != null)
+            {
+                string path = AssetDatabase.GetAssetPath(clip);
+                var ai = AssetImporter.GetAtPath(path) as AudioImporter;
+                if (ai == null)
+                {
+                    r.Warning($"无法读取 {path} 的导入设置。");
+                }
+                else
+                {
+                    AudioImporterSampleSettings s = ai.defaultSampleSettings;
+                    if (s.loadType != AudioClipLoadType.DecompressOnLoad)
+                        r.Warning($"{path} 的 Load Type 是 {s.loadType}，建议改为 Decompress On Load（循环点更稳）。");
+                    else if (s.compressionFormat != AudioCompressionFormat.PCM)
+                        r.Warning($"{path} 的压缩格式是 {s.compressionFormat}，WAV 建议保持 PCM 以免循环点出现间隙。");
+                    else
+                        r.Ok($"BGM 导入设置正确：{path}，PCM / Decompress On Load，时长 {clip.length:F1} s。");
+                }
             }
         }
 
@@ -247,13 +310,18 @@ namespace MemoryCard.EditorTools
 
         private static void CheckWebGLModule(Result r)
         {
-            bool supported = BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL);
-            if (supported) r.Ok("WebGL 构建模块可用。");
-            else r.Error("WebGL 模块缺失：Hub → 安装 → 该版本齿轮 → 添加模块 → WebGL Build Support。");
+            // 交付物要求 exe，所以 Windows 模块是硬性条件；WebGL 只是备用的网页版
+            bool win = BuildPipeline.IsBuildTargetSupported(
+                BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64);
+            if (win) r.Ok("Windows 构建模块可用（可导出 exe）。");
+            else r.Error("Windows 模块缺失：Hub → 安装 → 该版本齿轮 → 添加模块 → Windows Build Support (Mono/IL2CPP)。");
+
+            bool webgl = BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL);
+            if (webgl) r.Ok("WebGL 构建模块可用（网页版备用）。");
+            else r.Warning("WebGL 模块缺失，仅影响网页版，不影响 exe 交付。");
 
             var target = EditorUserBuildSettings.activeBuildTarget;
-            if (target == BuildTarget.WebGL) r.Ok("当前活动平台为 WebGL。");
-            else r.Warning($"当前活动平台为 {target}，与交付目标 WebGL 不一致（构建工具会自动切换）。");
+            r.Ok($"当前活动平台为 {target}（构建工具会在构建前自动切换到目标平台）。");
         }
 
         private static void CheckSpriteImport(Result r, BoardManager board)

@@ -47,6 +47,8 @@ namespace MemoryCard
         [Header("引用")]
         [SerializeField] private BoardManager board;
         [SerializeField] private UIManager ui;
+        [Tooltip("背景音乐播放器（独立 AudioSource，循环播放 bgm_loop.wav）")]
+        [SerializeField] private MusicPlayer music;
 
         [Header("参数")]
         [Tooltip("配对失败后停留多久再翻回（秒），课件第 14 页示例为 1.5")]
@@ -106,6 +108,14 @@ namespace MemoryCard
                 ui = FindObjectOfType<UIManager>();
 #endif
             }
+            if (music == null)
+            {
+#if UNITY_2023_1_OR_NEWER
+                music = FindFirstObjectByType<MusicPlayer>();
+#else
+                music = FindObjectOfType<MusicPlayer>();
+#endif
+            }
         }
 
         private void Start()
@@ -141,6 +151,13 @@ namespace MemoryCard
             board.BuildNumbers();
             board.Shuffle();
             board.BuildBoard(OnCardClicked);
+
+            // 重开时恢复背景音乐音量，并确保循环仍在播放
+            if (music != null)
+            {
+                music.SetDucked(false);
+                music.PlayMusic();
+            }
 
             if (ui != null)
             {
@@ -228,6 +245,7 @@ namespace MemoryCard
             _isWin = true;
             _isPlaying = false;
             Sfx.PlayWin();
+            if (music != null) music.SetDucked(true);   // 压低 BGM，让胜利音效突出
 
             float best = PlayerPrefs.GetFloat(BestTimeKey, 0f);
             bool isNewRecord = best <= 0f || _timer < best;

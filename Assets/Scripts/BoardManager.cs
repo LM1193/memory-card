@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MemoryCard
 {
     /// <summary>
-    /// 牌桌管理：负责卡牌池（numbers 数组）、洗牌，以及按【课件第 7 页的世界坐标公式】生成 12 张卡牌。
+    /// 牌桌管理：负责卡牌池（numbers 数组）、洗牌，以及按【课件第 7 页的世界坐标公式】生成卡牌。
     ///
     /// 【路线 B：世界坐标方案 —— 对齐课件】
     /// 本脚本不使用 UGUI 的 GridLayoutGroup，卡牌位置完全由公式计算：
@@ -15,10 +15,14 @@ namespace MemoryCard
     /// 挂载位置：场景中的空物体（命名为 Board），不需要任何 UI 组件。
     ///
     /// 对应课件：
-    ///   第 7 页  —— 布局：3 行 4 列；originalX=-3, originalY=0, offsetX=2, offsetY=2.5
-    ///   第 9 页  —— images 数组（6 种牌面）+ numbers 数组初始 {0,0,1,1,2,2,3,3,4,4,5,5}
+    ///   第 7 页  —— 世界坐标布局公式：originalX=-3, originalY=-1, offsetX=2, offsetY=2.5
+    ///   第 9 页  —— images 数组（本作扩到 8 种牌面）+ numbers 数组初始 {0,0,1,1,…,7,7}
     ///   第 10 页 —— 洗牌
     ///   第 11 页 —— 第 i 行第 j 列取 Images[numbers[i * cols + j]]
+    ///
+    /// 【实验二的要求是 4 行 4 列 = 16 张、8 种图案、每种 2 张】
+    /// 因此场景中实际参数为 rows=4、cols=4、images 长度 8，
+    /// numbers 由 BuildNumbers() 用 k/2 自动生成 {0,0,1,1,2,2,…,7,7}，配对判定天然成立。
     /// </summary>
     public class BoardManager : MonoBehaviour
     {
@@ -70,8 +74,9 @@ namespace MemoryCard
         }
 
         /// <summary>
-        /// 课件第 9 页：生成长度为 12 的 numbers 数组，值为 {0,0,1,1,2,2,3,3,4,4,5,5}，
-        /// 保证每种牌面恰好出现 2 张。
+        /// 课件第 9 页：生成长度为 rows×cols 的 numbers 数组。
+        /// 用 k/2 的整数除法生成 {0,0,1,1,2,2,…}，保证每种牌面恰好出现 2 张；
+        /// 4×4 时自动得到 {0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7} 共 16 项。
         /// </summary>
         public void BuildNumbers()
         {
@@ -153,7 +158,7 @@ namespace MemoryCard
         }
 
         /// <summary>
-        /// 在 Scene 视图画出 12 个卡牌落点框，便于对齐相机取景（选中 Board 物体时可见）。
+        /// 在 Scene 视图画出每张牌的落点框，便于对齐相机取景（选中 Board 物体时可见）。
         /// </summary>
         private void OnDrawGizmosSelected()
         {

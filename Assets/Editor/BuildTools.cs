@@ -24,17 +24,26 @@ namespace MemoryCard.EditorTools
     /// </summary>
     public static class BuildTools
     {
-        private const string OutputFolder = "webgl";
+        private const string WebGLOutputFolder = "webgl";
+        private const string WindowsOutputFolder = "build_win";
+        private const string WindowsExeName = "MemoryCard.exe";
         private const string DefaultScene = "Assets/Main.unity";
-        private const string LogRelativePath = "Logs/build-webgl.txt";
+        private const string WebGLLogPath = "Logs/build-webgl.txt";
+        private const string WindowsLogPath = "Logs/build-win64.txt";
 
         /// <summary>delayCall 每帧回调一次；1200 次约等于 20 秒以上（低帧率时更长）</summary>
         private const int MaxWaitTicks = 1200;
 
+        [MenuItem("Tools/Memory Card/Build Windows x64 (Safe)", priority = 9)]
+        private static void BuildWindowsMenu()
+        {
+            EnsureTargetThenBuild(false, BuildTarget.StandaloneWindows64);
+        }
+
         [MenuItem("Tools/Memory Card/Build WebGL (Safe)", priority = 10)]
         private static void BuildWebGLMenu()
         {
-            EnsureTargetThenBuild(false);
+            EnsureTargetThenBuild(false, BuildTarget.WebGL);
         }
 
         /// <summary>
@@ -49,25 +58,40 @@ namespace MemoryCard.EditorTools
                 if (Application.isBatchMode) EditorApplication.Exit(1);
                 return;
             }
-            EnsureTargetThenBuild(true);
+            EnsureTargetThenBuild(true, BuildTarget.WebGL);
         }
 
-        private static void EnsureTargetThenBuild(bool batchMode)
+        /// <summary>
+        /// 批处理入口（无界面）：Unity.exe -quit -batchmode -projectPath "..." -executeMethod MemoryCard.EditorTools.BuildTools.BuildWindowsBatch
+        /// </summary>
+        public static void BuildWindowsBatch()
         {
-            if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL)
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
             {
-                Debug.Log($"[Build] 当前平台为 {EditorUserBuildSettings.activeBuildTarget}，正在切换到 WebGL（会触发资源重导入，耗时较长）…");
-                bool switched = EditorUserBuildSettings.SwitchActiveBuildTarget(
-                    BuildTargetGroup.WebGL, BuildTarget.WebGL);
+                Debug.LogError("[Build] 批处理模式下检测到编辑器仍在编译/导入，已中止。请先让编辑器完成编译后重跑。");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+                return;
+            }
+            EnsureTargetThenBuild(true, BuildTarget.StandaloneWindows64);
+        }
+
+        private static void EnsureTargetThenBuild(bool batchMode, BuildTarget target)
+        {
+            BuildTargetGroup group = BuildPipeline.GetBuildTargetGroup(target);
+
+            if (EditorUserBuildSettings.activeBuildTarget != target)
+            {
+                Debug.Log($"[Build] 当前平台为 {EditorUserBuildSettings.activeBuildTarget}，正在切换到 {target}（会触发资源重导入，耗时较长）…");
+                bool switched = EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);
                 if (!switched)
                 {
-                    Debug.LogError("[Build] 切换 WebGL 平台失败，构建中止。请确认 WebGL 模块已安装（Hub → 添加模块 → WebGL Build Support）。");
+                    Debug.LogError($"[Build] 切换 {target} 平台失败，构建中止。请确认该模块已安装（Hub → 添加模块）。");
                     if (batchMode && Application.isBatchMode) EditorApplication.Exit(1);
                     return;
                 }
             }
 
-            WaitUntilIdle(batchMode, 0, DoBuild);
+            WaitUntilIdle(batchMode, 0, () => DoBuild(target));
         }
 
         /// <summary>
@@ -107,7 +131,7 @@ namespace MemoryCard.EditorTools
             EditorApplication.delayCall += () => WaitUntilIdle(batchMode, tick + 1, onIdle);
         }
 
-        private static void DoBuild()
+        private static void DoBuild(BuildTarget target)
         {
             string[] scenes = CollectScenes();
             if (scenes.Length == 0)
@@ -116,19 +140,28 @@ namespace MemoryCard.EditorTools
                 return;
             }
 
-            string outputDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), OutputFolder));
+            bool isWindows = target == BuildTarget.StandaloneWindows64;
+            string folder = isWindows ? WindowsOutputFolder : WebGLOutputFolder;
+            string outputDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), folder));
+
+            // WebGL 的 locationPathName 是目录；Windows 必须是 .exe 的完整路径
+            string location = isWindows
+                ? Path.Combine(outputDir, WindowsExeName)
+                : outputDir;
+
             Directory.CreateDirectory(outputDir);
 
             var options = new BuildPlayerOptions
             {
                 scenes = scenes,
-                locationPathName = outputDir,
-                target = BuildTarget.WebGL,
-                targetGroup = BuildTargetGroup.WebGL,
+                locationPathName = location,
+                target = target,
+                targetGroup = BuildPipeline.GetBuildTargetGroup(target),
                 options = BuildOptions.None
             };
 
-            Debug.Log($"[Build] 开始构建 WebGL → {outputDir}\n[Build] 场景：{string.Join(", ", scenes)}");
+            string label = isWindows ? "Windows x64（单文件 exe）" : "WebGL";
+            Debug.Log($"[Build] 开始构建 {label} → {location}\n[Build] 场景：{string.Join(", ", scenes)}");
             float startTime = (float)EditorApplication.timeSinceStartup;
 
             BuildReport report = BuildPipeline.BuildPlayer(options);
@@ -136,11 +169,11 @@ namespace MemoryCard.EditorTools
             BuildSummary summary = report.summary;
 
             var sb = new StringBuilder();
-            sb.AppendLine("===== Memory Card · WebGL 构建报告 =====");
+            sb.AppendLine($"===== Memory Card · {label} 构建报告 =====");
             sb.AppendLine($"时间        : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"结果        : {summary.result}");
             sb.AppendLine($"耗时        : {elapsed:F1} s");
-            sb.AppendLine($"输出目录    : {outputDir}");
+            sb.AppendLine($"输出        : {location}");
             sb.AppendLine($"场景        : {string.Join(", ", scenes)}");
             sb.AppendLine($"构建体积    : {summary.totalSize / 1024f / 1024f:F2} MB（Unity 统计口径）");
             sb.AppendLine($"错误 / 警告 : {summary.totalErrors} / {summary.totalWarnings}");
@@ -155,7 +188,8 @@ namespace MemoryCard.EditorTools
 
             try
             {
-                string logPath = Path.Combine(Directory.GetCurrentDirectory(), LogRelativePath);
+                string logPath = Path.Combine(Directory.GetCurrentDirectory(),
+                    isWindows ? WindowsLogPath : WebGLLogPath);
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath));
                 File.WriteAllText(logPath, text, new UTF8Encoding(false));
             }
@@ -166,7 +200,7 @@ namespace MemoryCard.EditorTools
 
             if (summary.result == BuildResult.Succeeded)
             {
-                EditorUtility.RevealInFinder(outputDir);
+                EditorUtility.RevealInFinder(isWindows ? location : outputDir);
             }
         }
 

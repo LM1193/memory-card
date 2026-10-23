@@ -63,3 +63,6 @@ desktop.ini
 # --- 本项目追加 ---
 # Unity MCP 插件（开发工具，非游戏代码，不纳入源码交付）
 Packages/com.coplaydev.unity-mcp/
+
+# Windows 构建产物（可由菜单 Tools/Build 重新生成，不入库）
+[Bb]uild_win/
