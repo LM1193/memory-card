@@ -9,19 +9,108 @@ import json
 import os
 import subprocess
 import sys
+import unicodedata
 
 ROOT = r"E:/unitwork/Memory Card"
 SHOTS = ROOT + "/docs/screenshots/"
 SCRIPTS = ROOT + "/Assets/Scripts/"
 EDSDK_DIR = r"E:/WorkBuddy/WorkBuddy/resources/app.asar.unpacked/resources/plugins/workbuddy-builtin/skills/workbuddy-local-office-edit"
 FILE_ID = "D://实验二_记忆翻牌.docx"
-TABLE_ID = "bsmfaswf"
 PY = sys.executable
 
-BODY_FONT = {"font_family": "宋体", "font_size_pt": 10.5}
-CODE_FONT = {"font_family": "Consolas", "font_size_pt": 7.5}
-SEC_FONT = {"font_family": "黑体", "font_size_pt": 12, "bold": True}
-CAP_FONT = {"font_family": "宋体", "font_size_pt": 9}
+BODY_FONT = {"font_family": "宋体", "font_size": 10.5}
+CODE_FONT = {"font_family": "Consolas", "font_size": 7.5}
+SEC_FONT = {"font_family": "黑体", "font_size": 12, "bold": True}
+CAP_FONT = {"font_family": "宋体", "font_size": 9}
+
+# ---- 代码块排版：单元格可用宽度与软折行 ----
+# 实测（PDF 边界框）：单元格左右边框 x=115.2 / 510.7，左右内边距各 5.4pt → 可用 384.7pt
+CELL_WIDTH_PT = 384.7
+CELL_MARGIN_PT = 5.4
+CODE_ADV = 0.55 * CODE_FONT["font_size"]   # Consolas 单字符步进（em 的 0.55）
+
+
+def _cw(ch):
+    """单个字符的显示宽度（pt）：中韩全角按 1em，其余按 Consolas 步进。"""
+    return CODE_FONT["font_size"] if unicodedata.east_asian_width(ch) in "WF" else CODE_ADV
+
+
+def _w(s):
+    return sum(_cw(c) for c in s)
+
+
+def _hard_wrap(s, avail_pt):
+    """把一段文本按可用宽度切行：优先在标点/空格后断开，尽量不切断英文单词。"""
+    out = []
+    while _w(s) > avail_pt:
+        acc = 0.0
+        cut = 0
+        for i, ch in enumerate(s):
+            acc += _cw(ch)
+            if acc > avail_pt:
+                break
+            cut = i + 1
+        if cut <= 0:
+            cut = 1
+        # 1) 回退到最近的天然断点（标点后）
+        best = -1
+        for i in range(cut, 0, -1):
+            if s[i - 1] in " ，；、。）》】:：,;+":
+                best = i
+                break
+        if best >= cut * 0.45:
+            cut = best
+        else:
+            # 2) 退而求其次：不切断英文标识符
+            j = cut
+            while j > 0 and (s[j - 1].isalnum() or s[j - 1] in "_.$"):
+                j -= 1
+            if j >= cut * 0.45:
+                cut = j
+        out.append(s[:cut].rstrip())
+        s = s[cut:].lstrip()
+    out.append(s)
+    return out or [""]
+
+
+def _split_comment(line):
+    """把行尾 // 注释切出来（跳过字符串内的 //）。"""
+    in_str = False
+    for i in range(len(line) - 1):
+        c = line[i]
+        if c == '"' and (i == 0 or line[i - 1] != "\\"):
+            in_str = not in_str
+        elif not in_str and c == "/" and line[i + 1] == "/":
+            return line[:i], line[i:]
+    return line, ""
+
+
+def _wrap_code_line(line):
+    """代码行超过单元格宽度时软折行：续行缩进 +8，注释续行补 // 前缀。"""
+    # 留 5pt 安全余量：按实测宽度排版时仍有个别行被 Word 自己折行
+    limit = CELL_WIDTH_PT - CELL_MARGIN_PT * 2 - 5
+    if _w(line) <= limit:
+        return [line]
+    indent = len(line) - len(line.lstrip(" "))
+    base, cont = " " * indent, " " * (indent + 8)
+    code_part, comment = _split_comment(line)
+    out = []
+    body = code_part.strip()
+    if body:
+        # 首行按 base 缩进排，续行按更宽的 cont 缩进，二次校验避免溢出
+        segs = _hard_wrap(body, limit - _w(base))
+        out.append(base + segs[0])
+        for seg in segs[1:]:
+            for s2 in _hard_wrap(seg, limit - _w(cont)):
+                out.append(cont + s2)
+    if comment:
+        pre = cont if out else base
+        # /// 文档注释的续行仍以 /// 开头，否则会被读成普通注释
+        mark = "/// " if comment.startswith("///") else "// "
+        for k, seg in enumerate(_hard_wrap(comment.strip(), limit - _w(pre))):
+            out.append(pre + (seg if k == 0 else mark + seg))
+    return out or [line]
+
 
 
 def P(text, fmt=None, prop=None):
@@ -44,10 +133,13 @@ def body(t):
 
 
 def code(t):
-    # 引擎会丢弃 \n，Word 的行内换行是 \v（垂直制表符），写入后是 <w:br w:type="textWrapping"/>
-    t = t.replace("\n", "\v")
-    return P(t, CODE_FONT, {"jc": "left", "spacing_before": 2, "spacing_after": 2,
-                            "line_spacing": 1.0, "line_spacing_rule": 1})
+    # 先按单元格宽度软折行，再用 \v（Word 行内换行）拼回一段
+    # 引擎会丢弃 \n，写入后是 <w:br w:type="textWrapping"/>
+    lines = []
+    for raw in t.replace("\t", "    ").split("\n"):
+        lines.extend(_wrap_code_line(raw))
+    return P("\v".join(lines), CODE_FONT, {"jc": "left", "spacing_before": 2, "spacing_after": 2,
+                                           "line_spacing": 1.0, "line_spacing_rule": 1})
 
 
 def img(path, w=440, h=248):
@@ -325,13 +417,22 @@ def edsdk(tool, args, timeout=180):
     return p.stdout.strip() or p.stderr.strip()
 
 
-def cell_end(row):
+def table_meta():
+    """表格元信息。注意 table_id 会随文档重新导入而变化，必须每次现查，不能写死。"""
     out = edsdk("doc_list_tables", {"file_id": FILE_ID}, timeout=60)
-    data = json.loads(out.splitlines()[0])
-    for c in data["tables"][0]["editable_cells"]:
+    return json.loads(out.splitlines()[0])["tables"][0]
+
+
+def cell_range(row, meta=None):
+    meta = meta or table_meta()
+    for c in meta["editable_cells"]:
         if c["row"] == row and c["col"] == 2:
-            return c["end"]
+            return c["start"], c["end"]
     raise RuntimeError("找不到单元格 %d,2" % row)
+
+
+def cell_end(row):
+    return cell_range(row)[1]
 
 
 def main():
@@ -340,10 +441,19 @@ def main():
     if "--only" in sys.argv:
         only = int(sys.argv[sys.argv.index("--only") + 1])
     if not build_only and only is None:
-        # 清空两个待填写单元格，避免残留测试内容
-        print(edsdk("doc_set_table_cells", {"file_id": FILE_ID, "table_id": TABLE_ID,
-                                            "cells": [{"row": 6, "col": 2, "text": ""},
-                                                      {"row": 7, "col": 2, "text": ""}]}))
+        # 清空两个待填写单元格，避免新旧内容叠加
+        meta = table_meta()
+        print("表格 table_id =", meta["table_id"])
+        print(edsdk("doc_set_table_cells", {"file_id": FILE_ID, "table_id": meta["table_id"],
+                                           "cells": [{"row": 6, "col": 2, "text": ""},
+                                                     {"row": 7, "col": 2, "text": ""}]}))
+        # 清空校验：单元格若仍有内容说明清空失败，继续写会造成重复，直接中止
+        meta = table_meta()
+        for r in (6, 7):
+            s, e = cell_range(r, meta)
+            if e - s > 60:
+                raise SystemExit("清空失败：单元格 %d,2 仍有 %d 个字符，已中止" % (r, e - s))
+        print("清空校验通过")
     for i, (name, row, fn) in enumerate(BATCHES):
         if only is not None and i != only:
             continue

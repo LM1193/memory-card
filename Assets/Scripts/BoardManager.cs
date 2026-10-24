@@ -27,8 +27,8 @@ namespace MemoryCard
     public class BoardManager : MonoBehaviour
     {
         [Header("布局（课件第 7 页）")]
-        [Tooltip("行数（课件示例为 3）")]
-        [SerializeField] private int rows = 3;
+        [Tooltip("行数（课件示例为 3，本实验按 4 行 4 列改为 4）")]
+        [SerializeField] private int rows = 4;
         [Tooltip("列数（课件示例为 4）")]
         [SerializeField] private int cols = 4;
         [Tooltip("左下角起始点 X（课件示例为 -3）")]
@@ -41,8 +41,9 @@ namespace MemoryCard
         [SerializeField] private float offsetY = 2.5f;
 
         [Header("牌面素材（课件第 9 页 images 数组，顺序 = 牌面 ID）")]
-        [Tooltip("依次放入：circle / crescent / diamond / heart / sanjiao / square")]
-        [SerializeField] private Sprite[] images = new Sprite[6];
+        [Tooltip("依次放入：circle / crescent / diamond / heart / sanjiao / square / " +
+                 "star / cross")]
+        [SerializeField] private Sprite[] images = new Sprite[8];
 
         [Header("卡背素材")]
         [SerializeField] private Sprite backSprite;
