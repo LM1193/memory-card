@@ -178,7 +178,7 @@ def blocks_part1():
     b.append(body("脚本共 7 个（Assets/Scripts）：BoardManager（牌阵生成与洗牌入口）、Card（单张卡牌的状态与翻面）、"
                   "GameManager（主流程）、UIManager（界面刷新）、Sfx（程序化短音效）、MusicPlayer（背景音乐循环）、"
                   "ShuffleUtil（洗牌静态工具）。另有 3 个编辑器辅助脚本（BuildTools 一键安全构建、ProjectValidator 工程自检、"
-                  "ShotTools 运行截图）只用于开发调试，不参与游戏逻辑。"))
+                  "ShotTools 截图工具）只用于开发调试，不参与游戏逻辑。"))
 
     b.append(sec("二、关键设计：坐标公式、牌数与取景"))
     b.append(body("卡牌不是 UGUI 元素，而是场景里带 SpriteRenderer 的真实 2D 物体，位置完全由课件第 7 页的公式算出，"
@@ -193,8 +193,10 @@ def blocks_part1():
                   "实测读数与第一排牌不再重叠。"))
     b.append(body("numbers 数组由 BuildNumbers() 用整数除法 k / 2 生成，4×4 时自动得到 "
                   "{0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7}；rows、cols 一改，牌数与图案对数同步变化，逻辑无需改动。"))
-    b.append(img(SHOTS + "11_牌阵就绪_16张.png"))
-    b.append(cap("图 1　4 × 4 牌阵就绪（16 张牌、8 种图案、每种 2 张）"))
+    b.append(body("本文 5 张运行截图全部截自直接双击运行 build_win\\MemoryCard.exe 的录屏，画面里只有游戏窗口，"
+                  "不含任何编辑器面板。"))
+    b.append(img(SHOTS + "21_运行截图_牌阵就绪.png", h=275))
+    b.append(cap("图 1　exe 运行时的 4 × 4 牌阵（16 张牌、8 种图案各 2 张；TIME 0.3、SCORE 0、MOVES 0）"))
 
     b.append(sec("三、功能的实现（对应实验要求 8 条）"))
     b.append(P("（1）新建 Unity 2D 工程并搭建场景", SEC_FONT, {"jc": "left", "spacing_before": 10, "spacing_after": 2,
@@ -202,8 +204,8 @@ def blocks_part1():
     b.append(body("新建 2D 工程 MemoryCard，把 Memory 资源包中的牌面、卡背、牌桌、开始按钮与胜利插图导入 Assets/Art，"
                   "9 张卡牌贴图统一设为 Sprite（Single）、Pixels Per Unit = 100、勾选 Alpha Is Transparency。"
                   "按上表挂载脚本、建立 Canvas 与两个面板后进入运行，首先出现的是开始面板。"))
-    b.append(img(SHOTS + "10_开始界面_运行截图.png"))
-    b.append(cap("图 2　运行后的开始界面（顶栏三个读数已就位，点击 Start 开始）"))
+    b.append(img(SHOTS + "20_运行截图_开始界面.png", h=275))
+    b.append(cap("图 2　exe 运行后的开始界面（顶栏三个读数已就位，点击中间 Start 开始）"))
 
     b.append(P("（2）用代码生成 4×4 = 16 张卡牌", SEC_FONT, {"jc": "left", "spacing_before": 10, "spacing_after": 2,
                                                   "line_spacing": 1.25, "line_spacing_rule": 1}))
@@ -265,10 +267,10 @@ def blocks_part1():
                   "    }\n"
                   "    _isChecking = false;\n"
                   "}"))
-    b.append(img(SHOTS + "12_配对成功.png"))
-    b.append(cap("图 3　配对成功：两张同图案牌保持正面，SCORE 10、MOVES 1"))
-    b.append(img(SHOTS + "13_配对失败_待翻回.png"))
-    b.append(cap("图 4　配对失败：两张不同图案牌翻开后停留 1.5 秒再翻回（SCORE 0 为扣分后保底）"))
+    b.append(img(SHOTS + "22_运行截图_配对成功.png", h=275))
+    b.append(cap("图 3　配对成功：两张同图案牌保持正面，SCORE 由 0 增至 10（TIME 8.0、MOVES 3）"))
+    b.append(img(SHOTS + "23_运行截图_配对失败.png", h=275))
+    b.append(cap("图 4　配对失败：两张不同图案牌翻开后停留 1.5 秒再翻回，SCORE 由 20 扣至 18（TIME 12.0、MOVES 5）"))
     return b
 
 
@@ -284,8 +286,8 @@ def blocks_part2():
                   "_score = Mathf.Max(0, _score - penaltyPerMismatch);// 失败 -2，不为负\n"
                   "_moves++;                                         // 翻开第二张即计 1 步\n"
                   "if (ui != null) { ui.UpdateScore(_score); ui.UpdateMoves(_moves); }"))
-    b.append(img(SHOTS + "14_胜利界面.png"))
-    b.append(cap("图 5　全部配对完成：胜利面板显示 TIME / SCORE / MOVES 与历史最佳"))
+    b.append(img(SHOTS + "24_运行截图_胜利界面.png", h=275))
+    b.append(cap("图 5　全部配对完成：TIME 48.5 s、SCORE 60、MOVES 20，BEST 48.5 s 并标注 NEW!，下方为 RESTART 按钮"))
 
     b.append(P("（6）音效系统：循环背景音乐 + 翻牌音 + 配对成功音", SEC_FONT,
                {"jc": "left", "spacing_before": 10, "spacing_after": 2, "line_spacing": 1.25, "line_spacing_rule": 1}))
